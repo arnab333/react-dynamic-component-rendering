@@ -225,7 +225,7 @@ class App extends Component {
               <Col xs={24}>
                 <AntdCard elevate>
                   <Row justify="center" gutter={16} align="middle">
-                    <Col xs={24} md={6}>
+                    {/* <Col xs={24} md={6}>
                       <label htmlFor="cmp">Select Component...</label>
                       <Select
                         id="cmp"
@@ -243,7 +243,7 @@ class App extends Component {
                           );
                         })}
                       </Select>
-                    </Col>
+                    </Col> */}
 
                     <Col xs={24} md={6}>
                       <label htmlFor="sensor">Select Sensor...</label>
