@@ -172,10 +172,6 @@ class App extends Component {
         return { ...el };
       });
 
-      console.log(phName, '===>', data);
-
-      console.log('temp', temp);
-
       this.handleState({ selectedCharts: temp });
     }
   };
@@ -193,6 +189,29 @@ class App extends Component {
       this.draggableRefs.push(ref);
     }
   };
+
+  // onResizeStop = (event, direction, refToElement, delta) => {
+  //   const { selectedCharts } = this.state;
+
+  //   const elementsList = document.getElementsByClassName('sensors');
+
+  //   for (let index = 0; index < elementsList.length; index++) {
+  //     const element = elementsList[index];
+  //     console.log(element.clientWidth);
+  //     const phName = element?.classList?.[1];
+  //     const temp = selectedCharts.map((el) => {
+  //       if (el.shortName === phName) {
+  //         return {
+  //           ...el,
+  //           size: { width: element.clientWidth, height: element.clientHeight },
+  //         };
+  //       }
+  //       return { ...el };
+  //     });
+
+  //     this.handleState({ selectedCharts: temp });
+  //   }
+  // };
 
   render() {
     const { selectedComponent, sensorTypes, selectedSensors, selectedCharts } =
@@ -282,6 +301,8 @@ class App extends Component {
                       width: 320,
                       height: 200,
                     }}
+                    // size={el.size}
+                    // onResizeStop={this.onResizeStop}
                     enable={{
                       top: false,
                       right: false,
