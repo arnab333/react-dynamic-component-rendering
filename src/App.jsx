@@ -1,5 +1,5 @@
 import { Fragment, Component } from 'react';
-import { Row, Col, Select, Button } from 'antd';
+import { Row, Col, Select } from 'antd';
 import { Resizable as ReResizable } from 're-resizable';
 import Draggable from 'react-draggable';
 import { Line as LineChart } from 'react-chartjs-2';
@@ -267,12 +267,12 @@ class App extends Component {
                           })}
                       </Select>
                     </Col>
-                    <Col xs={24} md={4}>
+                    {/* <Col xs={24} md={4}>
                       <label htmlFor="">&nbsp;</label>
                       <Button block type="primary" htmlType="button">
                         Submit
                       </Button>
-                    </Col>
+                    </Col> */}
                   </Row>
                 </AntdCard>
               </Col>
