@@ -308,8 +308,6 @@ class App extends Component {
                   );
                 });
 
-                console.log('tempChartData', tempChartData);
-
                 temp = temp.map((el) => {
                   let obj = { ...el };
 
