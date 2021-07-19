@@ -1,113 +1,53 @@
 import { Fragment, Component } from 'react';
-import { Row, Col, Select } from 'antd';
+import { Row, Col, Button, Popover, message } from 'antd';
 import { Resizable as ReResizable } from 're-resizable';
 import Draggable from 'react-draggable';
 import { Line as LineChart } from 'react-chartjs-2';
-// import update from 'immutability-helper';
+import update from 'immutability-helper';
+
+import { HiOutlineCog } from 'react-icons/hi';
 
 import {
   resizableCursorTypes,
   // componentTypes,
 } from './components/App/helpers';
-import AntdCard from './shared/components/AntdCard';
+// import AntdCard from './shared/components/AntdCard';
 import axios from 'axios';
 import { manageChartData } from './shared/utils';
 
-import cssStyles from './components/App/styles/app.module.css';
+// import cssStyles from './components/App/styles/app.module.css';
+import { v4 } from 'uuid';
+import PopupContent from './components/PopupContent';
 // import ReactSpeedoMeter from './shared/components/ReactSpeedoMeter';
 
 class App extends Component {
   state = {
-    chartData: [],
-    sensorTypes: [],
-    selectedComponent: '',
-
-    isDraggable: true,
-
-    selectedSensors: [],
-
-    selectedCharts: [],
+    locationList: [],
+    customizableDivs: [],
   };
 
   draggableRefs = [];
 
-  handleState = (data) => {
-    this.setState((prev) => {
-      return {
-        ...prev,
-        ...data,
-      };
-    });
-  };
-
   componentDidMount() {
-    // document.addEventListener(
-    //   'mouseover',
-    //   (e) => {
-    //     const cursor = e.target?.style?.cursor;
-    //     console.log('e', e);
-    //     if (
-    //       cursor === 'col-resize' ||
-    //       cursor === 'se-resize' ||
-    //       cursor === 'row-resize' ||
-    //       cursor === 'ne-resize' ||
-    //       cursor === 'nw-resize' ||
-    //       cursor === 'sw-resize'
-    //     ) {
-    //       this.handleState({ isDraggable: false });
-    //     } else if (cursor === 'move') {
-    //       this.handleState({ isDraggable: true });
-    //     }
-    //   },
-    //   false
-    // );
-
-    Promise.all([
-      axios.get(`https://apidev.airsensa.io/api/V03/locations/MANCHESTER0004`, {
+    axios
+      .get(`https://apidev.airsensa.io/api/V03/locations`, {
         headers: { 'X-API-KEY': 'onetoken' },
-      }),
-      axios.get(
-        `https://apidev.airsensa.io/api/V03/locations/MANCHESTER0004/tsd.json?lasthours=3`,
-        {
-          headers: { 'X-API-KEY': 'onetoken' },
-        }
-      ),
-    ])
-      .then((responses) => {
-        if (responses.length > 0) {
-          const locationData = responses?.[0].data?.data;
-          const timeSeriesData = responses?.[1].data?.data?.timeSeriesData;
-
-          if (timeSeriesData && locationData) {
-            const tempChartData = manageChartData({
-              phenomList: locationData?.sensorSpecs,
-              locationID: locationData?.locationID,
-              locationAveragesList: timeSeriesData,
-            });
-
-            if (tempChartData) {
-              const tempSensorTypes = tempChartData.map((el) => ({
-                text: el.shortName,
-                value: el.shortName,
-              }));
-              this.handleState({
-                chartData: tempChartData.map((el) => ({
-                  ...el,
-                  isDraggable: true,
-                })),
-                sensorTypes: tempSensorTypes,
-              });
-            }
-          }
+      })
+      .then((response) => {
+        if (response.data?.data) {
+          const temp = response.data.data.map((el) => el.locationID);
+          this.handleState({ locationList: temp });
         }
       })
-      .catch((error) => {
-        console.log(error);
+      .catch((err) => {
+        console.log(err);
       });
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (this.state.selectedCharts.length > prevState.selectedCharts.length) {
+    if (
+      this.state.customizableDivs.length > prevState.customizableDivs.length
+    ) {
       const elementsList = document.getElementsByClassName('sensors');
 
       if (elementsList.length > 0) {
@@ -115,46 +55,42 @@ class App extends Component {
           const element = elementsList[index];
 
           if (!element.mouseover) {
-            const phName = element?.classList?.[1];
+            const id = element?.classList?.[1];
 
             element.addEventListener(
               'mouseover',
               (e) => {
-                const { selectedCharts } = this.state;
+                const { customizableDivs } = this.state;
                 const cursor = e.target?.style?.cursor;
                 if (resizableCursorTypes.includes(cursor)) {
-                  const matched = selectedCharts.find(
-                    (el) => el.shortName === phName
-                  );
+                  const matched = customizableDivs.find((el) => el.id === id);
 
                   if (matched.isDraggable !== false) {
-                    const temp = selectedCharts.map((el) => {
-                      if (el.shortName === phName) {
+                    const temp = customizableDivs.map((el) => {
+                      if (el.id === id) {
                         return { ...el, isDraggable: false };
                       }
                       return { ...el };
                     });
 
-                    this.handleState({ selectedCharts: temp });
+                    this.handleState({ customizableDivs: temp });
                   }
                 } else if (
                   cursor === 'move' ||
                   (typeof cursor === 'string' &&
                     !resizableCursorTypes.includes(cursor))
                 ) {
-                  const matched = selectedCharts.find(
-                    (el) => el.shortName === phName
-                  );
+                  const matched = customizableDivs.find((el) => el.id === id);
 
                   if (matched.isDraggable !== true) {
-                    const temp = selectedCharts.map((el) => {
-                      if (el.shortName === phName) {
+                    const temp = customizableDivs.map((el) => {
+                      if (el.id === id) {
                         return { ...el, isDraggable: true };
                       }
                       return { ...el };
                     });
 
-                    this.handleState({ selectedCharts: temp });
+                    this.handleState({ customizableDivs: temp });
                   }
                 }
               },
@@ -166,254 +102,339 @@ class App extends Component {
     }
   }
 
-  handleComponentSelect = (value) => {
-    this.handleState({ selectedComponent: value });
+  handleState = (data) => {
+    this.setState((prev) => {
+      return {
+        ...prev,
+        ...data,
+      };
+    });
   };
 
-  handleSensorType = (value) => {
-    const { chartData } = this.state;
-    const temp = chartData.filter((el) => value.includes(el.shortName));
-    this.handleState({ selectedSensors: value, selectedCharts: temp });
+  onDragStop = (id, data) => {
+    const { customizableDivs } = this.state;
+
+    let temp = [...customizableDivs];
+
+    temp = temp.map((el) => {
+      let obj = { ...el };
+
+      if (obj.id === id) {
+        obj = update(obj, {
+          dragPosition: {
+            $set: { x: data?.x, y: data?.y },
+          },
+        });
+      }
+      return { ...obj };
+    });
+
+    this.handleState({ customizableDivs: temp });
   };
 
-  onDragStop = (e, data) => {
-    const { selectedCharts } = this.state;
-    const phName = data?.node?.classList?.[1];
+  onCreateDiv = () => {
+    const { customizableDivs } = this.state;
 
-    if (phName) {
-      const temp = selectedCharts.map((el) => {
-        if (el.shortName === phName) {
-          return { ...el, position: { x: data?.x, y: data?.y } };
+    const tempObj = {
+      id: v4(),
+      isDraggable: true,
+      configDetails: {
+        locationId: '',
+        displayType: '',
+        sensor: '',
+        hours: '',
+        color: '',
+      },
+      dragPosition: undefined,
+      isConfigVisible: false,
+      isColorVisible: false,
+      isLoading: false,
+      chartData: {},
+      gaugeData: {},
+    };
+
+    const temp = update(customizableDivs, {
+      $push: [tempObj],
+    });
+
+    this.handleState({ customizableDivs: temp });
+  };
+
+  handleVisibility = (visible, id) => {
+    const { customizableDivs } = this.state;
+
+    let temp = [...customizableDivs];
+    temp = temp.map((el) => {
+      if (el.id === id) {
+        return {
+          ...el,
+          isConfigVisible: visible,
+        };
+      }
+      return { ...el };
+    });
+
+    this.handleState({ customizableDivs: temp });
+  };
+
+  handleInputChange = (value, name, id) => {
+    const { customizableDivs } = this.state;
+
+    let temp = [...customizableDivs];
+
+    temp = temp.map((el) => {
+      if (el.id === id) {
+        return { ...el, configDetails: { ...el.configDetails, [name]: value } };
+      }
+      return { ...el };
+    });
+
+    this.handleState({ customizableDivs: temp });
+  };
+
+  onDisableMove = (id, visible) => {
+    const { customizableDivs } = this.state;
+
+    let temp = [...customizableDivs];
+
+    temp = temp.map((el) => {
+      let tempObj = { ...el };
+      if (tempObj.id === id) {
+        tempObj = update(tempObj, {
+          isDraggable: { $set: !visible },
+          isColorVisible: { $set: visible },
+        });
+      }
+      return { ...tempObj };
+    });
+
+    this.handleState({ customizableDivs: temp });
+  };
+
+  onSubmitClick = (id) => {
+    const { customizableDivs } = this.state;
+
+    const matched = customizableDivs.find((el) => el.id === id);
+
+    if (matched && matched.configDetails) {
+      for (const key in matched.configDetails) {
+        if (!matched.configDetails[key]) {
+          return message.error('Please fill all the fields!');
         }
-        return { ...el };
-      });
+      }
 
-      this.handleState({ selectedCharts: temp });
+      (() => {
+        let temp = [...customizableDivs];
+        temp = temp.map((el) => {
+          let obj = { ...el };
+          if (obj.id === id) {
+            obj = update(obj, {
+              isConfigVisible: { $set: false },
+              isLoading: { $set: true },
+            });
+          }
+          return { ...obj };
+        });
+
+        this.handleState({ customizableDivs: temp });
+      })();
+
+      Promise.all([
+        axios.get(
+          `https://apidev.airsensa.io/api/V03/locations/${matched.configDetails.locationId}`,
+          {
+            headers: { 'X-API-KEY': 'onetoken' },
+          }
+        ),
+        axios.get(
+          `https://apidev.airsensa.io/api/V03/locations/${
+            matched.configDetails.locationId
+          }/tsd.json${
+            matched.configDetails.hours
+              ? `?lasthours=${matched.configDetails.hours}`
+              : ''
+          }`,
+          {
+            headers: { 'X-API-KEY': 'onetoken' },
+          }
+        ),
+      ])
+        .then((responses) => {
+          if (responses.length > 0) {
+            const locationData = responses?.[0].data?.data;
+            const timeSeriesData = responses?.[1].data?.data?.timeSeriesData;
+
+            if (timeSeriesData && locationData) {
+              const tempChartData = manageChartData({
+                phenomList: locationData?.sensorSpecs,
+                locationID: locationData?.locationID,
+                locationAveragesList: timeSeriesData,
+                chartColor: matched?.configDetails?.color,
+              });
+
+              if (tempChartData) {
+                const tempChartMatch = tempChartData.find((element) => {
+                  return (
+                    element?.shortName?.toUpperCase() ===
+                    matched?.configDetails?.sensor?.toUpperCase()
+                  );
+                });
+
+                (() => {
+                  let temp = [...customizableDivs];
+                  temp = temp.map((el) => {
+                    let obj = { ...el };
+
+                    if (obj.id === id) {
+                      obj = update(obj, {
+                        chartData: { $set: tempChartMatch ?? {} },
+                        gaugeData: { $set: {} },
+                        isConfigVisible: { $set: false },
+                        isLoading: { $set: false },
+                      });
+                    }
+                    return { ...obj };
+                  });
+
+                  this.handleState({ customizableDivs: temp });
+                })();
+              }
+            }
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+        });
     }
   };
 
-  setRef = (ref) => {
-    const matched =
-      this.draggableRefs.length > 0 &&
-      this.draggableRefs.find(
-        (el) => el?._reactInternals?.key === ref?._reactInternals?.key
-      );
+  onDeleteClick = (id) => {
+    const { customizableDivs } = this.state;
+    let temp = [...customizableDivs];
+    temp = temp.filter((el) => el.id !== id);
 
-    if (ref && this.draggableRefs.length === 0) {
-      this.draggableRefs.push(ref);
-    } else if (ref?._reactInternals?.key && !matched) {
-      this.draggableRefs.push(ref);
-    }
+    this.handleState({ customizableDivs: temp });
   };
-
-  // onResizeStop = (event, direction, refToElement, delta) => {
-  //   const { selectedCharts } = this.state;
-
-  //   const elementsList = document.getElementsByClassName('sensors');
-
-  //   for (let index = 0; index < elementsList.length; index++) {
-  //     const element = elementsList[index];
-  //     console.log(element.clientWidth);
-  //     const phName = element?.classList?.[1];
-  //     const temp = selectedCharts.map((el) => {
-  //       if (el.shortName === phName) {
-  //         return {
-  //           ...el,
-  //           size: { width: element.clientWidth, height: element.clientHeight },
-  //         };
-  //       }
-  //       return { ...el };
-  //     });
-
-  //     this.handleState({ selectedCharts: temp });
-  //   }
-  // };
 
   render() {
-    const {
-      sensorTypes,
-      selectedSensors,
-      selectedCharts,
-      // selectedComponent,
-    } = this.state;
+    const { customizableDivs, locationList } = this.state;
 
     return (
       <Fragment>
         <Row justify="center">
           <Col xs={23}>
-            <Row style={{ paddingTop: 8, paddingBottom: 8, marginBottom: 16 }}>
-              <Col xs={24}>
-                <AntdCard elevate>
-                  <Row justify="center" gutter={16} align="middle">
-                    {/* <Col xs={24} md={6}>
-                      <label htmlFor="cmp">Select Component...</label>
-                      <Select
-                        id="cmp"
-                        value={selectedComponent}
-                        placeholder="Select Component..."
-                        onChange={this.handleComponentSelect}
-                        style={{ width: '100%' }}>
-                        {componentTypes.map((el) => {
-                          return (
-                            <Fragment key={el.value}>
-                              <Select.Option value={el.value}>
-                                {el.text}
-                              </Select.Option>
-                            </Fragment>
-                          );
-                        })}
-                      </Select>
-                    </Col> */}
-
-                    <Col xs={24} md={6}>
-                      <label htmlFor="sensor">Select Sensor...</label>
-                      <Select
-                        id="sensor"
-                        mode="multiple"
-                        allowClear
-                        value={selectedSensors}
-                        placeholder="Select Sensor..."
-                        onChange={this.handleSensorType}
-                        style={{ width: '100%' }}>
-                        {sensorTypes.length > 0 &&
-                          sensorTypes.map((el) => {
-                            return (
-                              <Fragment key={el.value}>
-                                <Select.Option value={el.value}>
-                                  {el.text}
-                                </Select.Option>
-                              </Fragment>
-                            );
-                          })}
-                      </Select>
-                    </Col>
-                    {/* <Col xs={24} md={4}>
-                      <label htmlFor="">&nbsp;</label>
-                      <Button block type="primary" htmlType="button">
-                        Submit
-                      </Button>
-                    </Col> */}
-                  </Row>
-                </AntdCard>
+            <Row justify="center" style={{ paddingTop: 16 }} gutter={[0, 16]}>
+              <Col>
+                <Button
+                  block
+                  type="primary"
+                  htmlType="button"
+                  onClick={this.onCreateDiv}>
+                  Create Div
+                </Button>
               </Col>
             </Row>
 
-            {/* Dynamic Content */}
-
-            {selectedCharts.map((el) => {
-              return (
-                <Draggable
-                  disabled={!el.isDraggable}
-                  key={el.shortName}
-                  defaultClassName={`sensors ${el.shortName ?? ''} ${
-                    cssStyles.sensors
-                  }`}
-                  onStop={this.onDragStop}
-                  position={el.position}
-                  ref={this.setRef}>
-                  <ReResizable
-                    style={{
-                      border: '1px solid blue',
-                      textAlign: 'center',
-                      cursor: 'move',
-                    }}
-                    defaultSize={{
-                      width: 320,
-                      height: 200,
-                    }}
-                    // size={el.size}
-                    // onResizeStop={this.onResizeStop}
-                    enable={{
-                      top: false,
-                      right: false,
-                      bottom: false,
-                      left: false,
-                      topRight: true,
-                      bottomRight: true,
-                      bottomLeft: true,
-                      topLeft: true,
-                    }}>
-                    <LineChart
-                      // ref={this.setRef}
-                      data={{ datasets: [el] }}
-                      options={{
-                        scales: {
-                          xAxes: [
-                            {
-                              type: 'time',
-                              time: {
-                                unit: 'hour',
-                              },
-                            },
-                          ],
-                        },
-                        responsive: true,
-                      }}
-                    />
-                  </ReResizable>
-                </Draggable>
-              );
-            })}
-
-            {/* Gauges */}
-
-            {/* {selectedCharts.map((el) => {
-              return (
-                <Draggable
-                  disabled={!el.isDraggable}
-                  key={el.shortName}
-                  defaultClassName={`sensors ${el.shortName ?? ''} ${
-                    cssStyles.sensors
-                  }`}
-                  onStop={this.onDragStop}
-                  position={el.position}
-                  ref={this.setRef}>
-                  <ReResizable
-                    style={{
-                      border: '1px solid blue',
-                      textAlign: 'center',
-                      cursor: 'move',
-                    }}
-                    defaultSize={{
-                      width: 320,
-                      height: 200,
-                    }}
-                    // size={el.size}
-                    // onResizeStop={this.onResizeStop}
-                    enable={{
-                      top: false,
-                      right: false,
-                      bottom: false,
-                      left: false,
-                      topRight: true,
-                      bottomRight: true,
-                      bottomLeft: true,
-                      topLeft: true,
-                    }}>
-                    <ReactSpeedoMeter
-                      {...el}
-                      actualValue={actualValue}
-                      speedoMeterProps={{ height: 140 }}
-                    />
-                  </ReResizable>
-                </Draggable>
-              );
-            })} */}
-
-            {/* <Draggable defaultClassName="testing">
-              <ReResizable
-                style={{
-                  border: '1px solid blue',
-                  textAlign: 'center',
-                  cursor: 'move',
-                }}
-                defaultSize={{
-                  width: 320,
-                  height: 200,
-                }}>
-                8
-              </ReResizable>
-            </Draggable> */}
+            <Row>
+              {customizableDivs.length > 0 &&
+                customizableDivs.map((el, idx) => {
+                  return (
+                    <Fragment key={el.id}>
+                      <Draggable
+                        disabled={!el.isDraggable}
+                        defaultClassName={`sensors ${el.id}`}
+                        onStop={(e, data) => this.onDragStop(el.id, data)}
+                        position={el.dragPosition}>
+                        <ReResizable
+                          style={{
+                            border: '1px solid blue',
+                            textAlign: 'center',
+                            cursor: 'move',
+                          }}
+                          defaultSize={{
+                            width: 320,
+                            height: 200,
+                          }}
+                          // size={el.size}
+                          // onResizeStop={this.onResizeStop}
+                          enable={{
+                            top: false,
+                            right: false,
+                            bottom: false,
+                            left: false,
+                            topRight: false,
+                            bottomRight: true,
+                            bottomLeft: false,
+                            topLeft: false,
+                          }}>
+                          <Row style={{ padding: 8 }} className="popover-row">
+                            <Col>
+                              <Popover
+                                overlayStyle={{ width: 300 }}
+                                content={
+                                  <Fragment>
+                                    <PopupContent
+                                      {...el.configDetails}
+                                      isColorVisible={el.isColorVisible}
+                                      isConfigVisible={el.isConfigVisible}
+                                      locations={locationList}
+                                      id={el.id}
+                                      handleInputChange={this.handleInputChange}
+                                      onDisableMove={this.onDisableMove}
+                                      onSubmitClick={this.onSubmitClick}
+                                      onDeleteClick={this.onDeleteClick}
+                                    />
+                                  </Fragment>
+                                }
+                                // placement="bottom"
+                                trigger="click"
+                                visible={el.isConfigVisible}
+                                onVisibleChange={(visible) =>
+                                  this.handleVisibility(visible, el.id)
+                                }>
+                                <HiOutlineCog
+                                  size="1.5em"
+                                  style={{ cursor: 'pointer' }}
+                                />
+                              </Popover>
+                            </Col>
+                          </Row>
+                          {el.configDetails.displayType === 'chart' ? (
+                            <Fragment>
+                              {el.chartData &&
+                              Object.keys(el.chartData).length > 0 ? (
+                                <Fragment>
+                                  <LineChart
+                                    // ref={this.setRef}
+                                    data={{ datasets: [el.chartData] }}
+                                    options={{
+                                      scales: {
+                                        xAxes: [
+                                          {
+                                            type: 'time',
+                                            time: {
+                                              unit: 'hour',
+                                            },
+                                          },
+                                        ],
+                                      },
+                                      responsive: true,
+                                    }}
+                                  />
+                                </Fragment>
+                              ) : (
+                                <Fragment>No Data Found!</Fragment>
+                              )}
+                            </Fragment>
+                          ) : (
+                            <Fragment></Fragment>
+                          )}
+                        </ReResizable>
+                      </Draggable>
+                    </Fragment>
+                  );
+                })}
+            </Row>
           </Col>
         </Row>
       </Fragment>

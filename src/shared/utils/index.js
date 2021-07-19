@@ -4,6 +4,7 @@ export const manageChartData = ({
   phenomList,
   locationID,
   locationAveragesList,
+  chartColor,
 }) => {
   if (
     phenomList &&
@@ -27,7 +28,7 @@ export const manageChartData = ({
               locationID,
               shortName: match.shortName,
               label: `${match.longName} (${match.units})`,
-              borderColor: match.graphColour,
+              borderColor: chartColor ?? match.graphColour,
               units: match.units,
               data: [],
             };
@@ -67,4 +68,55 @@ const mergeEquallyLabeledTypes = (collector, type) => {
     collector.list.push(type);
   }
   return collector;
+};
+
+export const manageGaugeData = ({
+  phenomList,
+  gaugeSensors,
+  locationID = '',
+}) => {
+  if (
+    phenomList &&
+    phenomList.length > 0 &&
+    gaugeSensors &&
+    Object.keys(gaugeSensors).length > 0
+  ) {
+    const tempGauges = [];
+    for (const key in gaugeSensors) {
+      const match = phenomList.find(
+        (item) => item.shortName.toUpperCase() === key.toUpperCase()
+      );
+
+      if (match) {
+        let minScale = match.minScale;
+        let maxScale = match.maxScale;
+        if (minScale === undefined || minScale === null) {
+          minScale = 0;
+        }
+        if (maxScale === undefined || maxScale === null || maxScale === 0) {
+          maxScale = 100;
+        }
+        const tempObj = {
+          locationID: locationID || '',
+          compass: match.compass,
+          shortName: match.shortName,
+          longName: match.longName,
+          graphColour: match.graphColour,
+          minScale,
+          maxScale,
+          amberPoint: match.amberPoint, // will be removed
+          redPoint: match.redPoint, // will be removed
+          markers: match.markers,
+          units: match.units,
+          actualValue: gaugeSensors[key],
+          needleValue:
+            gaugeSensors[key] > maxScale ? maxScale : gaugeSensors[key],
+        };
+
+        tempGauges.push(tempObj);
+      }
+    }
+
+    return tempGauges;
+  }
 };
