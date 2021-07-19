@@ -413,7 +413,11 @@ class App extends Component {
                                           {
                                             type: 'time',
                                             time: {
-                                              unit: 'hour',
+                                              unit:
+                                                Number(el.configDetails.hours) >
+                                                24
+                                                  ? 'day'
+                                                  : 'hour',
                                             },
                                           },
                                         ],
