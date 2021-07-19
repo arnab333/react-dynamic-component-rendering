@@ -18,12 +18,14 @@ import { manageChartData } from './shared/utils';
 // import cssStyles from './components/App/styles/app.module.css';
 import { v4 } from 'uuid';
 import PopupContent from './components/PopupContent';
+import AntdCard from './shared/components/AntdCard';
 // import ReactSpeedoMeter from './shared/components/ReactSpeedoMeter';
 
 class App extends Component {
   state = {
     locationList: [],
     customizableDivs: [],
+    timeData: [],
   };
 
   draggableRefs = [];
@@ -178,18 +180,43 @@ class App extends Component {
   };
 
   handleInputChange = (value, name, id) => {
-    const { customizableDivs } = this.state;
+    const { customizableDivs, timeData } = this.state;
 
-    let temp = [...customizableDivs];
+    let temp = [];
 
-    temp = temp.map((el) => {
-      if (el.id === id) {
-        return { ...el, configDetails: { ...el.configDetails, [name]: value } };
+    if (name === 'hours') {
+      temp = [...timeData];
+      if (temp.length === 0) {
+        temp.push({ id, value });
+      } else {
+        const matched = temp.find((el) => el.id === id);
+        if (matched) {
+          temp = temp.map((el) => {
+            if (el.id === id) {
+              return { ...el, value };
+            }
+            return { ...el };
+          });
+        } else {
+          temp.push({ id, value });
+        }
       }
-      return { ...el };
-    });
 
-    this.handleState({ customizableDivs: temp });
+      this.handleState({ timeData: temp });
+    } else {
+      temp = [...customizableDivs];
+      temp = temp.map((el) => {
+        if (el.id === id) {
+          return {
+            ...el,
+            configDetails: { ...el.configDetails, [name]: value },
+          };
+        }
+        return { ...el };
+      });
+
+      this.handleState({ customizableDivs: temp });
+    }
   };
 
   onDisableMove = (id, visible) => {
@@ -212,32 +239,35 @@ class App extends Component {
   };
 
   onSubmitClick = (id) => {
-    const { customizableDivs } = this.state;
+    const { customizableDivs, timeData } = this.state;
 
     const matched = customizableDivs.find((el) => el.id === id);
+    const matchedTime = timeData.find((el) => el.id === id);
 
     if (matched && matched.configDetails) {
       for (const key in matched.configDetails) {
-        if (!matched.configDetails[key]) {
+        if (key !== 'hours' && !matched.configDetails[key]) {
           return message.error('Please fill all the fields!');
         }
       }
 
-      (() => {
-        let temp = [...customizableDivs];
-        temp = temp.map((el) => {
-          let obj = { ...el };
-          if (obj.id === id) {
-            obj = update(obj, {
-              isConfigVisible: { $set: false },
-              isLoading: { $set: true },
-            });
-          }
-          return { ...obj };
-        });
+      let temp = [...customizableDivs];
 
-        this.handleState({ customizableDivs: temp });
-      })();
+      temp = temp.map((el) => {
+        let obj = { ...el };
+        if (obj.id === id) {
+          obj = update(obj, {
+            isConfigVisible: { $set: false },
+            isLoading: { $set: true },
+            configDetails: {
+              hours: { $set: matchedTime?.value ?? obj.hours },
+            },
+          });
+        }
+        return { ...obj };
+      });
+
+      this.handleState({ customizableDivs: temp });
 
       Promise.all([
         axios.get(
@@ -250,9 +280,7 @@ class App extends Component {
           `https://apidev.airsensa.io/api/V03/locations/${
             matched.configDetails.locationId
           }/tsd.json${
-            matched.configDetails.hours
-              ? `?lasthours=${matched.configDetails.hours}`
-              : ''
+            matchedTime.value ? `?lasthours=${matchedTime.value}` : ''
           }`,
           {
             headers: { 'X-API-KEY': 'onetoken' },
@@ -280,24 +308,23 @@ class App extends Component {
                   );
                 });
 
-                (() => {
-                  let temp = [...customizableDivs];
-                  temp = temp.map((el) => {
-                    let obj = { ...el };
+                console.log('tempChartData', tempChartData);
 
-                    if (obj.id === id) {
-                      obj = update(obj, {
-                        chartData: { $set: tempChartMatch ?? {} },
-                        gaugeData: { $set: {} },
-                        isConfigVisible: { $set: false },
-                        isLoading: { $set: false },
-                      });
-                    }
-                    return { ...obj };
-                  });
+                temp = temp.map((el) => {
+                  let obj = { ...el };
 
-                  this.handleState({ customizableDivs: temp });
-                })();
+                  if (obj.id === id) {
+                    obj = update(obj, {
+                      chartData: { $set: tempChartMatch ?? {} },
+                      gaugeData: { $set: {} },
+                      isConfigVisible: { $set: false },
+                      isLoading: { $set: false },
+                    });
+                  }
+                  return { ...obj };
+                });
+
+                this.handleState({ customizableDivs: temp });
               }
             }
           }
@@ -317,7 +344,7 @@ class App extends Component {
   };
 
   render() {
-    const { customizableDivs, locationList } = this.state;
+    const { customizableDivs, locationList, timeData } = this.state;
 
     return (
       <Fragment>
@@ -338,6 +365,7 @@ class App extends Component {
             <Row>
               {customizableDivs.length > 0 &&
                 customizableDivs.map((el, idx) => {
+                  const matchTime = timeData.find((elem) => elem.id === el.id);
                   return (
                     <Fragment key={el.id}>
                       <Draggable
@@ -367,72 +395,85 @@ class App extends Component {
                             bottomLeft: false,
                             topLeft: false,
                           }}>
-                          <Row style={{ padding: 8 }} className="popover-row">
-                            <Col>
-                              <Popover
-                                overlayStyle={{ width: 300 }}
-                                content={
+                          <AntdCard
+                            loading={el.isLoading}
+                            style={{ height: '100%' }}
+                            bodyStyle={{ height: '100%' }}>
+                            <Row style={{ padding: 8 }} className="popover-row">
+                              <Col>
+                                <Popover
+                                  overlayStyle={{ width: 300 }}
+                                  content={
+                                    <Fragment>
+                                      <PopupContent
+                                        {...el.configDetails}
+                                        hours={
+                                          matchTime?.value ??
+                                          el?.configDetails?.hours ??
+                                          ''
+                                        }
+                                        isColorVisible={el.isColorVisible}
+                                        isConfigVisible={el.isConfigVisible}
+                                        locations={locationList}
+                                        id={el.id}
+                                        handleInputChange={
+                                          this.handleInputChange
+                                        }
+                                        onDisableMove={this.onDisableMove}
+                                        onSubmitClick={this.onSubmitClick}
+                                        onDeleteClick={this.onDeleteClick}
+                                      />
+                                    </Fragment>
+                                  }
+                                  // placement="bottom"
+                                  trigger="click"
+                                  visible={el.isConfigVisible}
+                                  onVisibleChange={(visible) =>
+                                    this.handleVisibility(visible, el.id)
+                                  }>
+                                  <HiOutlineCog
+                                    size="1.5em"
+                                    style={{ cursor: 'pointer' }}
+                                  />
+                                </Popover>
+                              </Col>
+                            </Row>
+                            {el.configDetails.displayType === 'chart' ? (
+                              <Fragment>
+                                {el.chartData &&
+                                Object.keys(el.chartData).length > 0 ? (
                                   <Fragment>
-                                    <PopupContent
-                                      {...el.configDetails}
-                                      isColorVisible={el.isColorVisible}
-                                      isConfigVisible={el.isConfigVisible}
-                                      locations={locationList}
-                                      id={el.id}
-                                      handleInputChange={this.handleInputChange}
-                                      onDisableMove={this.onDisableMove}
-                                      onSubmitClick={this.onSubmitClick}
-                                      onDeleteClick={this.onDeleteClick}
+                                    <LineChart
+                                      // ref={this.setRef}
+                                      data={{ datasets: [el.chartData] }}
+                                      options={{
+                                        scales: {
+                                          xAxes: [
+                                            {
+                                              type: 'time',
+                                              time: {
+                                                unit:
+                                                  Number(
+                                                    el.configDetails.hours
+                                                  ) > 24
+                                                    ? 'day'
+                                                    : 'hour',
+                                              },
+                                            },
+                                          ],
+                                        },
+                                        responsive: true,
+                                      }}
                                     />
                                   </Fragment>
-                                }
-                                // placement="bottom"
-                                trigger="click"
-                                visible={el.isConfigVisible}
-                                onVisibleChange={(visible) =>
-                                  this.handleVisibility(visible, el.id)
-                                }>
-                                <HiOutlineCog
-                                  size="1.5em"
-                                  style={{ cursor: 'pointer' }}
-                                />
-                              </Popover>
-                            </Col>
-                          </Row>
-                          {el.configDetails.displayType === 'chart' ? (
-                            <Fragment>
-                              {el.chartData &&
-                              Object.keys(el.chartData).length > 0 ? (
-                                <Fragment>
-                                  <LineChart
-                                    // ref={this.setRef}
-                                    data={{ datasets: [el.chartData] }}
-                                    options={{
-                                      scales: {
-                                        xAxes: [
-                                          {
-                                            type: 'time',
-                                            time: {
-                                              unit:
-                                                Number(el.configDetails.hours) >
-                                                24
-                                                  ? 'day'
-                                                  : 'hour',
-                                            },
-                                          },
-                                        ],
-                                      },
-                                      responsive: true,
-                                    }}
-                                  />
-                                </Fragment>
-                              ) : (
-                                <Fragment>No Data Found!</Fragment>
-                              )}
-                            </Fragment>
-                          ) : (
-                            <Fragment></Fragment>
-                          )}
+                                ) : (
+                                  <Fragment>No Data Found!</Fragment>
+                                )}
+                              </Fragment>
+                            ) : (
+                              <Fragment></Fragment>
+                            )}
+                          </AntdCard>
                         </ReResizable>
                       </Draggable>
                     </Fragment>
