@@ -5,12 +5,16 @@ import Draggable from 'react-draggable';
 import { Line as LineChart } from 'react-chartjs-2';
 // import update from 'immutability-helper';
 
-import { componentTypes, resizableCursorTypes } from './components/App/helpers';
+import {
+  resizableCursorTypes,
+  // componentTypes,
+} from './components/App/helpers';
 import AntdCard from './shared/components/AntdCard';
 import axios from 'axios';
 import { manageChartData } from './shared/utils';
 
 import cssStyles from './components/App/styles/app.module.css';
+// import ReactSpeedoMeter from './shared/components/ReactSpeedoMeter';
 
 class App extends Component {
   state = {
@@ -119,27 +123,39 @@ class App extends Component {
                 const { selectedCharts } = this.state;
                 const cursor = e.target?.style?.cursor;
                 if (resizableCursorTypes.includes(cursor)) {
-                  const temp = selectedCharts.map((el) => {
-                    if (el.shortName === phName) {
-                      return { ...el, isDraggable: false };
-                    }
-                    return { ...el };
-                  });
+                  const matched = selectedCharts.find(
+                    (el) => el.shortName === phName
+                  );
 
-                  this.handleState({ selectedCharts: temp });
+                  if (matched.isDraggable !== false) {
+                    const temp = selectedCharts.map((el) => {
+                      if (el.shortName === phName) {
+                        return { ...el, isDraggable: false };
+                      }
+                      return { ...el };
+                    });
+
+                    this.handleState({ selectedCharts: temp });
+                  }
                 } else if (
                   cursor === 'move' ||
                   (typeof cursor === 'string' &&
                     !resizableCursorTypes.includes(cursor))
                 ) {
-                  const temp = selectedCharts.map((el) => {
-                    if (el.shortName === phName) {
-                      return { ...el, isDraggable: true };
-                    }
-                    return { ...el };
-                  });
+                  const matched = selectedCharts.find(
+                    (el) => el.shortName === phName
+                  );
 
-                  this.handleState({ selectedCharts: temp });
+                  if (matched.isDraggable !== true) {
+                    const temp = selectedCharts.map((el) => {
+                      if (el.shortName === phName) {
+                        return { ...el, isDraggable: true };
+                      }
+                      return { ...el };
+                    });
+
+                    this.handleState({ selectedCharts: temp });
+                  }
                 }
               },
               false
@@ -214,8 +230,12 @@ class App extends Component {
   // };
 
   render() {
-    const { selectedComponent, sensorTypes, selectedSensors, selectedCharts } =
-      this.state;
+    const {
+      sensorTypes,
+      selectedSensors,
+      selectedCharts,
+      // selectedComponent,
+    } = this.state;
 
     return (
       <Fragment>
@@ -334,6 +354,51 @@ class App extends Component {
                 </Draggable>
               );
             })}
+
+            {/* Gauges */}
+
+            {/* {selectedCharts.map((el) => {
+              return (
+                <Draggable
+                  disabled={!el.isDraggable}
+                  key={el.shortName}
+                  defaultClassName={`sensors ${el.shortName ?? ''} ${
+                    cssStyles.sensors
+                  }`}
+                  onStop={this.onDragStop}
+                  position={el.position}
+                  ref={this.setRef}>
+                  <ReResizable
+                    style={{
+                      border: '1px solid blue',
+                      textAlign: 'center',
+                      cursor: 'move',
+                    }}
+                    defaultSize={{
+                      width: 320,
+                      height: 200,
+                    }}
+                    // size={el.size}
+                    // onResizeStop={this.onResizeStop}
+                    enable={{
+                      top: false,
+                      right: false,
+                      bottom: false,
+                      left: false,
+                      topRight: true,
+                      bottomRight: true,
+                      bottomLeft: true,
+                      topLeft: true,
+                    }}>
+                    <ReactSpeedoMeter
+                      {...el}
+                      actualValue={actualValue}
+                      speedoMeterProps={{ height: 140 }}
+                    />
+                  </ReResizable>
+                </Draggable>
+              );
+            })} */}
 
             {/* <Draggable defaultClassName="testing">
               <ReResizable
