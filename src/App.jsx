@@ -4,8 +4,8 @@ import { Resizable as ReResizable } from 're-resizable';
 import Draggable from 'react-draggable';
 import { Line as LineChart } from 'react-chartjs-2';
 import update from 'immutability-helper';
-
 import { HiOutlineCog } from 'react-icons/hi';
+import { IoIosArrowDown } from 'react-icons/io';
 
 import {
   resizableCursorTypes,
@@ -472,6 +472,16 @@ class App extends Component {
                               <Fragment></Fragment>
                             )}
                           </AntdCard>
+                          <IoIosArrowDown
+                            style={{
+                              position: 'absolute',
+                              marginLeft: 'auto',
+                              bottom: 0,
+                              right: 0,
+                              transform: `rotate(-45deg)`,
+                            }}
+                            size="1.2em"
+                          />
                         </ReResizable>
                       </Draggable>
                     </Fragment>
