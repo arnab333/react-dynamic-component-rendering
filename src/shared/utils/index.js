@@ -74,6 +74,7 @@ export const manageGaugeData = ({
   phenomList,
   gaugeSensors,
   locationID = '',
+  chartColor,
 }) => {
   if (
     phenomList &&
@@ -101,11 +102,11 @@ export const manageGaugeData = ({
           compass: match.compass,
           shortName: match.shortName,
           longName: match.longName,
-          graphColour: match.graphColour,
+          graphColor: chartColor ?? match.graphColour,
           minScale,
           maxScale,
-          amberPoint: match.amberPoint, // will be removed
-          redPoint: match.redPoint, // will be removed
+          // amberPoint: match.amberPoint, // will be removed
+          // redPoint: match.redPoint, // will be removed
           markers: match.markers,
           units: match.units,
           actualValue: gaugeSensors[key],

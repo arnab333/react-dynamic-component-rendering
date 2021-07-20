@@ -6,19 +6,20 @@ import { Line as LineChart } from 'react-chartjs-2';
 import update from 'immutability-helper';
 import { HiOutlineCog } from 'react-icons/hi';
 import { IoIosArrowDown } from 'react-icons/io';
+// import { v4 } from 'uuid';
+import axios from 'axios';
 
 import {
   resizableCursorTypes,
   // componentTypes,
 } from './components/App/helpers';
 // import AntdCard from './shared/components/AntdCard';
-import axios from 'axios';
-import { manageChartData } from './shared/utils';
+import { manageChartData, manageGaugeData } from './shared/utils';
 
 // import cssStyles from './components/App/styles/app.module.css';
-import { v4 } from 'uuid';
 import PopupContent from './components/PopupContent';
 import AntdCard from './shared/components/AntdCard';
+import ReactSpeedoMeter from './shared/components/ReactSpeedoMeter';
 // import ReactSpeedoMeter from './shared/components/ReactSpeedoMeter';
 
 class App extends Component {
@@ -67,7 +68,7 @@ class App extends Component {
                 if (resizableCursorTypes.includes(cursor)) {
                   const matched = customizableDivs.find((el) => el.id === id);
 
-                  if (matched.isDraggable !== false) {
+                  if (matched?.isDraggable !== false) {
                     const temp = customizableDivs.map((el) => {
                       if (el.id === id) {
                         return { ...el, isDraggable: false };
@@ -84,7 +85,7 @@ class App extends Component {
                 ) {
                   const matched = customizableDivs.find((el) => el.id === id);
 
-                  if (matched.isDraggable !== true) {
+                  if (matched?.isDraggable !== true) {
                     const temp = customizableDivs.map((el) => {
                       if (el.id === id) {
                         return { ...el, isDraggable: true };
@@ -138,7 +139,8 @@ class App extends Component {
     const { customizableDivs } = this.state;
 
     const tempObj = {
-      id: v4(),
+      // id: shortUuid().new(),
+      id: `id_${customizableDivs.length + 1}`,
       isDraggable: true,
       configDetails: {
         locationId: '',
@@ -148,6 +150,7 @@ class App extends Component {
         color: '',
       },
       dragPosition: undefined,
+      dimensions: undefined,
       isConfigVisible: false,
       isColorVisible: false,
       isLoading: false,
@@ -269,67 +272,149 @@ class App extends Component {
 
       this.handleState({ customizableDivs: temp });
 
-      Promise.all([
-        axios.get(
-          `https://apidev.airsensa.io/api/V03/locations/${matched.configDetails.locationId}`,
-          {
-            headers: { 'X-API-KEY': 'onetoken' },
-          }
-        ),
-        axios.get(
-          `https://apidev.airsensa.io/api/V03/locations/${
-            matched.configDetails.locationId
-          }/tsd.json${
-            matchedTime.value ? `?lasthours=${matchedTime.value}` : ''
-          }`,
-          {
-            headers: { 'X-API-KEY': 'onetoken' },
-          }
-        ),
-      ])
-        .then((responses) => {
-          if (responses.length > 0) {
-            const locationData = responses?.[0].data?.data;
-            const timeSeriesData = responses?.[1].data?.data?.timeSeriesData;
+      if (matched?.configDetails?.displayType === 'chart') {
+        Promise.all([
+          axios.get(
+            `https://apidev.airsensa.io/api/V03/locations/${matched.configDetails.locationId}`,
+            {
+              headers: { 'X-API-KEY': 'onetoken' },
+            }
+          ),
+          axios.get(
+            `https://apidev.airsensa.io/api/V03/locations/${
+              matched.configDetails.locationId
+            }/tsd.json${
+              matchedTime.value ? `?lasthours=${matchedTime.value}` : ''
+            }`,
+            {
+              headers: { 'X-API-KEY': 'onetoken' },
+            }
+          ),
+        ])
+          .then((responses) => {
+            if (responses.length > 0) {
+              const locationData = responses?.[0].data?.data;
+              const timeSeriesData = responses?.[1].data?.data?.timeSeriesData;
 
-            if (timeSeriesData && locationData) {
-              const tempChartData = manageChartData({
-                phenomList: locationData?.sensorSpecs,
-                locationID: locationData?.locationID,
-                locationAveragesList: timeSeriesData,
-                chartColor: matched?.configDetails?.color,
-              });
-
-              if (tempChartData) {
-                const tempChartMatch = tempChartData.find((element) => {
-                  return (
-                    element?.shortName?.toUpperCase() ===
-                    matched?.configDetails?.sensor?.toUpperCase()
-                  );
+              if (timeSeriesData && locationData) {
+                const tempChartData = manageChartData({
+                  phenomList: locationData?.sensorSpecs,
+                  locationID: locationData?.locationID,
+                  locationAveragesList: timeSeriesData,
+                  chartColor: matched?.configDetails?.color,
                 });
 
-                temp = temp.map((el) => {
-                  let obj = { ...el };
+                if (tempChartData) {
+                  const tempChartMatch = tempChartData.find((element) => {
+                    return (
+                      element?.shortName?.toUpperCase() ===
+                      matched?.configDetails?.sensor?.toUpperCase()
+                    );
+                  });
 
-                  if (obj.id === id) {
-                    obj = update(obj, {
-                      chartData: { $set: tempChartMatch ?? {} },
-                      gaugeData: { $set: {} },
-                      isConfigVisible: { $set: false },
-                      isLoading: { $set: false },
-                    });
-                  }
-                  return { ...obj };
-                });
+                  temp = temp.map((el) => {
+                    let obj = { ...el };
 
-                this.handleState({ customizableDivs: temp });
+                    if (obj.id === id) {
+                      obj = update(obj, {
+                        chartData: { $set: tempChartMatch ?? {} },
+                        gaugeData: { $set: {} },
+                        isConfigVisible: { $set: false },
+                        isLoading: { $set: false },
+                      });
+                    }
+                    return { ...obj };
+                  });
+
+                  this.handleState({ customizableDivs: temp });
+                }
               }
             }
-          }
-        })
-        .catch((error) => {
-          console.log(error);
-        });
+          })
+          .catch((error) => {
+            message.error(error?.response?.data?.message ?? 'Error!');
+            temp = temp.map((el) => {
+              let obj = { ...el };
+              if (obj.id === id) {
+                obj = update(obj, {
+                  isLoading: { $set: false },
+                });
+              }
+              return { ...obj };
+            });
+
+            this.handleState({ customizableDivs: temp });
+          });
+      } else {
+        Promise.all([
+          axios.get(
+            `https://apidev.airsensa.io/api/V03/locations/${matched.configDetails.locationId}`,
+            {
+              headers: { 'X-API-KEY': 'onetoken' },
+            }
+          ),
+          axios.get(
+            `https://apidev.airsensa.io/api/V03/locations/${matched.configDetails.locationId}/latest.json`,
+            {
+              headers: { 'X-API-KEY': 'onetoken' },
+            }
+          ),
+        ])
+          .then((responses) => {
+            if (responses.length > 0) {
+              const locationData = responses?.[0].data?.data;
+              const latestData = responses?.[1].data?.data?.latestData;
+
+              if (latestData && locationData) {
+                const tempGaugeData = manageGaugeData({
+                  chartColor: matched?.configDetails?.color,
+                  phenomList: locationData?.sensorSpecs,
+                  locationID: locationData?.locationID,
+                  gaugeSensors: latestData?.Dnum,
+                });
+
+                if (tempGaugeData) {
+                  const tempGaugeMatch = tempGaugeData.find((element) => {
+                    return (
+                      element?.shortName?.toUpperCase() ===
+                      matched?.configDetails?.sensor?.toUpperCase()
+                    );
+                  });
+
+                  temp = temp.map((el) => {
+                    let obj = { ...el };
+
+                    if (obj.id === id) {
+                      obj = update(obj, {
+                        chartData: { $set: {} },
+                        gaugeData: { $set: tempGaugeMatch ?? {} },
+                        isConfigVisible: { $set: false },
+                        isLoading: { $set: false },
+                      });
+                    }
+                    return { ...obj };
+                  });
+
+                  this.handleState({ customizableDivs: temp });
+                }
+              }
+            }
+          })
+          .catch((error) => {
+            message.error(error?.response?.data?.message ?? 'Error!');
+            temp = temp.map((el) => {
+              let obj = { ...el };
+              if (obj.id === id) {
+                obj = update(obj, {
+                  isLoading: { $set: false },
+                });
+              }
+              return { ...obj };
+            });
+
+            this.handleState({ customizableDivs: temp });
+          });
+      }
     }
   };
 
@@ -339,6 +424,33 @@ class App extends Component {
     temp = temp.filter((el) => el.id !== id);
 
     this.handleState({ customizableDivs: temp });
+  };
+
+  onResizeStop = (event, direction, refToElement, delta, id) => {
+    const { customizableDivs } = this.state;
+    let temp = [...customizableDivs];
+    if (id) {
+      const domElement = document?.querySelector?.(`.${id}`);
+      if (domElement?.clientHeight && domElement?.clientWidth) {
+        temp = temp.map((el) => {
+          let obj = { ...el };
+
+          if (el.id === id) {
+            obj = update(obj, {
+              dimensions: {
+                $set: {
+                  width: domElement.clientWidth,
+                  height: domElement.clientHeight,
+                },
+              },
+            });
+          }
+          return { ...obj };
+        });
+      }
+
+      this.handleState({ customizableDivs: temp });
+    }
   };
 
   render() {
@@ -382,7 +494,20 @@ class App extends Component {
                             height: 200,
                           }}
                           // size={el.size}
-                          // onResizeStop={this.onResizeStop}
+                          onResizeStop={(
+                            event,
+                            direction,
+                            refToElement,
+                            delta
+                          ) =>
+                            this.onResizeStop(
+                              event,
+                              direction,
+                              refToElement,
+                              delta,
+                              el.id
+                            )
+                          }
                           enable={{
                             top: false,
                             right: false,
@@ -396,8 +521,52 @@ class App extends Component {
                           <AntdCard
                             loading={el.isLoading}
                             style={{ height: '100%' }}
-                            bodyStyle={{ height: '100%' }}>
-                            <Row style={{ padding: 8 }} className="popover-row">
+                            bodyStyle={{
+                              height: '100%',
+                              padding: 12,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}>
+                            <Popover
+                              overlayStyle={{ width: 300 }}
+                              content={
+                                <Fragment>
+                                  <PopupContent
+                                    {...el.configDetails}
+                                    hours={
+                                      matchTime?.value ??
+                                      el?.configDetails?.hours ??
+                                      ''
+                                    }
+                                    isColorVisible={el.isColorVisible}
+                                    isConfigVisible={el.isConfigVisible}
+                                    locations={locationList}
+                                    id={el.id}
+                                    handleInputChange={this.handleInputChange}
+                                    onDisableMove={this.onDisableMove}
+                                    onSubmitClick={this.onSubmitClick}
+                                    onDeleteClick={this.onDeleteClick}
+                                  />
+                                </Fragment>
+                              }
+                              // placement="bottom"
+                              trigger="click"
+                              visible={el.isConfigVisible}
+                              onVisibleChange={(visible) =>
+                                this.handleVisibility(visible, el.id)
+                              }>
+                              <HiOutlineCog
+                                size="1.5em"
+                                style={{
+                                  cursor: 'pointer',
+                                  position: 'absolute',
+                                  top: 5,
+                                  left: 5,
+                                }}
+                              />
+                            </Popover>
+                            {/* <Row style={{ padding: 8 }} className="popover-row">
                               <Col>
                                 <Popover
                                   overlayStyle={{ width: 300 }}
@@ -435,8 +604,8 @@ class App extends Component {
                                   />
                                 </Popover>
                               </Col>
-                            </Row>
-                            {el.configDetails.displayType === 'chart' ? (
+                            </Row> */}
+                            {el?.configDetails?.displayType === 'chart' && (
                               <Fragment>
                                 {el.chartData &&
                                 Object.keys(el.chartData).length > 0 ? (
@@ -468,8 +637,46 @@ class App extends Component {
                                   <Fragment>No Data Found!</Fragment>
                                 )}
                               </Fragment>
-                            ) : (
-                              <Fragment></Fragment>
+                            )}
+
+                            {el?.configDetails?.displayType === 'gauge' && (
+                              <Fragment>
+                                {el.gaugeData &&
+                                Object.keys(el.gaugeData).length > 0 ? (
+                                  <Fragment>
+                                    <label
+                                      style={{
+                                        position: 'absolute',
+                                        top: 5,
+                                        fontSize: 16,
+                                      }}>
+                                      <strong>{`${el?.gaugeData?.longName}(${el?.gaugeData?.shortName})`}</strong>
+                                    </label>
+                                    <Row justify="center" align="middle">
+                                      <Col>
+                                        <ReactSpeedoMeter
+                                          {...el.gaugeData}
+                                          speedoMeterProps={{
+                                            width: el?.dimensions?.width
+                                              ? el?.dimensions?.width -
+                                                (el?.dimensions?.width * 20) /
+                                                  100
+                                              : 320 - (320 * 20) / 100,
+                                            height: el?.dimensions?.height
+                                              ? el?.dimensions?.height -
+                                                (el?.dimensions?.height * 20) /
+                                                  100
+                                              : 200 - (200 * 20) / 100,
+                                            textColor: el.gaugeData?.graphColor,
+                                          }}
+                                        />
+                                      </Col>
+                                    </Row>
+                                  </Fragment>
+                                ) : (
+                                  <Fragment>No Data Found!</Fragment>
+                                )}
+                              </Fragment>
                             )}
                           </AntdCard>
                           <IoIosArrowDown
