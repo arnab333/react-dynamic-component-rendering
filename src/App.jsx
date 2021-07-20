@@ -6,21 +6,14 @@ import { Line as LineChart } from 'react-chartjs-2';
 import update from 'immutability-helper';
 import { HiOutlineCog } from 'react-icons/hi';
 import { IoIosArrowDown } from 'react-icons/io';
-// import { v4 } from 'uuid';
 import axios from 'axios';
 
-import {
-  resizableCursorTypes,
-  // componentTypes,
-} from './components/App/helpers';
-// import AntdCard from './shared/components/AntdCard';
+import { resizableCursorTypes } from './components/App/helpers';
 import { manageChartData, manageGaugeData } from './shared/utils';
 
-// import cssStyles from './components/App/styles/app.module.css';
 import PopupContent from './components/PopupContent';
 import AntdCard from './shared/components/AntdCard';
 import ReactSpeedoMeter from './shared/components/ReactSpeedoMeter';
-// import ReactSpeedoMeter from './shared/components/ReactSpeedoMeter';
 
 class App extends Component {
   state = {
@@ -566,52 +559,13 @@ class App extends Component {
                                 }}
                               />
                             </Popover>
-                            {/* <Row style={{ padding: 8 }} className="popover-row">
-                              <Col>
-                                <Popover
-                                  overlayStyle={{ width: 300 }}
-                                  content={
-                                    <Fragment>
-                                      <PopupContent
-                                        {...el.configDetails}
-                                        hours={
-                                          matchTime?.value ??
-                                          el?.configDetails?.hours ??
-                                          ''
-                                        }
-                                        isColorVisible={el.isColorVisible}
-                                        isConfigVisible={el.isConfigVisible}
-                                        locations={locationList}
-                                        id={el.id}
-                                        handleInputChange={
-                                          this.handleInputChange
-                                        }
-                                        onDisableMove={this.onDisableMove}
-                                        onSubmitClick={this.onSubmitClick}
-                                        onDeleteClick={this.onDeleteClick}
-                                      />
-                                    </Fragment>
-                                  }
-                                  // placement="bottom"
-                                  trigger="click"
-                                  visible={el.isConfigVisible}
-                                  onVisibleChange={(visible) =>
-                                    this.handleVisibility(visible, el.id)
-                                  }>
-                                  <HiOutlineCog
-                                    size="1.5em"
-                                    style={{ cursor: 'pointer' }}
-                                  />
-                                </Popover>
-                              </Col>
-                            </Row> */}
+
                             {el?.configDetails?.displayType === 'chart' && (
                               <Fragment>
                                 {el.chartData &&
                                 Object.keys(el.chartData).length > 0 ? (
                                   <Fragment>
                                     <LineChart
-                                      // ref={this.setRef}
                                       data={{ datasets: [el.chartData] }}
                                       options={{
                                         scales: {

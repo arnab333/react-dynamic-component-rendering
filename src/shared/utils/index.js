@@ -105,8 +105,6 @@ export const manageGaugeData = ({
           graphColor: chartColor ?? match.graphColour,
           minScale,
           maxScale,
-          // amberPoint: match.amberPoint, // will be removed
-          // redPoint: match.redPoint, // will be removed
           markers: match.markers,
           units: match.units,
           actualValue: gaugeSensors[key],

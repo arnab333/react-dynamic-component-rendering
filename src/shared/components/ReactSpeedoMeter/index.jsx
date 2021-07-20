@@ -32,8 +32,6 @@ class ReactSpeedoMeter extends Component {
       actualValue,
       units,
       markers,
-      // amberPoint,
-      // redPoint,
       // shortName,
       // speedo meter props
       speedoMeterProps,
@@ -48,7 +46,6 @@ class ReactSpeedoMeter extends Component {
       if (el.value !== maxScale) {
         customSegmentStops.push(el.value);
       }
-      // customSegmentStops.push(el.value);
     });
     customSegmentStops.push(maxScale);
 
