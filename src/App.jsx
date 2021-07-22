@@ -321,6 +321,19 @@ class App extends Component {
 
                   this.handleState({ customizableDivs: temp });
                 }
+              } else {
+                temp = temp.map((el) => {
+                  let obj = { ...el };
+                  if (obj.id === id) {
+                    obj = update(obj, {
+                      isConfigVisible: { $set: false },
+                      isLoading: { $set: false },
+                    });
+                  }
+                  return { ...obj };
+                });
+
+                this.handleState({ customizableDivs: temp });
               }
             }
           })
@@ -464,193 +477,182 @@ class App extends Component {
                 </Button>
               </Col>
             </Row>
-
-            <Row>
-              {customizableDivs.length > 0 &&
-                customizableDivs.map((el, idx) => {
-                  const matchTime = timeData.find((elem) => elem.id === el.id);
-                  return (
-                    <Fragment key={el.id}>
-                      <Draggable
-                        disabled={!el.isDraggable}
-                        defaultClassName={`sensors ${el.id}`}
-                        onStop={(e, data) => this.onDragStop(el.id, data)}
-                        position={el.dragPosition}>
-                        <ReResizable
-                          style={{
-                            border: '1px solid blue',
-                            textAlign: 'center',
-                            cursor: 'move',
-                          }}
-                          defaultSize={{
-                            width: 320,
-                            height: 200,
-                          }}
-                          // size={el.size}
-                          onResizeStop={(
-                            event,
-                            direction,
-                            refToElement,
-                            delta
-                          ) =>
-                            this.onResizeStop(
-                              event,
-                              direction,
-                              refToElement,
-                              delta,
-                              el.id
-                            )
-                          }
-                          enable={{
-                            top: false,
-                            right: false,
-                            bottom: false,
-                            left: false,
-                            topRight: false,
-                            bottomRight: true,
-                            bottomLeft: false,
-                            topLeft: false,
-                          }}>
-                          <AntdCard
-                            loading={el.isLoading}
-                            style={{ height: '100%' }}
-                            bodyStyle={{
-                              height: '100%',
-                              padding: 12,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}>
-                            <Popover
-                              overlayStyle={{ width: 300 }}
-                              content={
-                                <Fragment>
-                                  <PopupContent
-                                    {...el.configDetails}
-                                    hours={
-                                      matchTime?.value ??
-                                      el?.configDetails?.hours ??
-                                      ''
-                                    }
-                                    isColorVisible={el.isColorVisible}
-                                    isConfigVisible={el.isConfigVisible}
-                                    locations={locationList}
-                                    id={el.id}
-                                    handleInputChange={this.handleInputChange}
-                                    onDisableMove={this.onDisableMove}
-                                    onSubmitClick={this.onSubmitClick}
-                                    onDeleteClick={this.onDeleteClick}
-                                  />
-                                </Fragment>
-                              }
-                              // placement="bottom"
-                              trigger="click"
-                              visible={el.isConfigVisible}
-                              onVisibleChange={(visible) =>
-                                this.handleVisibility(visible, el.id)
-                              }>
-                              <HiOutlineCog
-                                size="1.5em"
-                                style={{
-                                  cursor: 'pointer',
-                                  position: 'absolute',
-                                  top: 5,
-                                  left: 5,
-                                }}
-                              />
-                            </Popover>
-
-                            {el?.configDetails?.displayType === 'chart' && (
-                              <Fragment>
-                                {el.chartData &&
-                                Object.keys(el.chartData).length > 0 ? (
-                                  <Fragment>
-                                    <LineChart
-                                      data={{ datasets: [el.chartData] }}
-                                      options={{
-                                        scales: {
-                                          xAxes: [
-                                            {
-                                              type: 'time',
-                                              time: {
-                                                unit:
-                                                  Number(
-                                                    el.configDetails.hours
-                                                  ) > 24
-                                                    ? 'day'
-                                                    : 'hour',
-                                              },
-                                            },
-                                          ],
-                                        },
-                                        responsive: true,
-                                      }}
-                                    />
-                                  </Fragment>
-                                ) : (
-                                  <Fragment>No Data Found!</Fragment>
-                                )}
-                              </Fragment>
-                            )}
-
-                            {el?.configDetails?.displayType === 'gauge' && (
-                              <Fragment>
-                                {el.gaugeData &&
-                                Object.keys(el.gaugeData).length > 0 ? (
-                                  <Fragment>
-                                    <label
-                                      style={{
-                                        position: 'absolute',
-                                        top: 5,
-                                        fontSize: 16,
-                                      }}>
-                                      <strong>{`${el?.gaugeData?.longName}(${el?.gaugeData?.shortName})`}</strong>
-                                    </label>
-                                    <Row justify="center" align="middle">
-                                      <Col>
-                                        <ReactSpeedoMeter
-                                          {...el.gaugeData}
-                                          speedoMeterProps={{
-                                            width: el?.dimensions?.width
-                                              ? el?.dimensions?.width -
-                                                (el?.dimensions?.width * 20) /
-                                                  100
-                                              : 320 - (320 * 20) / 100,
-                                            height: el?.dimensions?.height
-                                              ? el?.dimensions?.height -
-                                                (el?.dimensions?.height * 20) /
-                                                  100
-                                              : 200 - (200 * 20) / 100,
-                                            textColor: el.gaugeData?.graphColor,
-                                          }}
-                                        />
-                                      </Col>
-                                    </Row>
-                                  </Fragment>
-                                ) : (
-                                  <Fragment>No Data Found!</Fragment>
-                                )}
-                              </Fragment>
-                            )}
-                          </AntdCard>
-                          <IoIosArrowDown
-                            style={{
-                              position: 'absolute',
-                              marginLeft: 'auto',
-                              bottom: 0,
-                              right: 0,
-                              transform: `rotate(-45deg)`,
-                            }}
-                            size="1.2em"
-                          />
-                        </ReResizable>
-                      </Draggable>
-                    </Fragment>
-                  );
-                })}
-            </Row>
           </Col>
         </Row>
+
+        {customizableDivs.length > 0 &&
+          customizableDivs.map((el, idx) => {
+            const matchTime = timeData.find((elem) => elem.id === el.id);
+            return (
+              <Fragment key={el.id}>
+                <Draggable
+                  disabled={!el.isDraggable}
+                  defaultClassName={`sensors ${el.id}`}
+                  onStop={(e, data) => this.onDragStop(el.id, data)}
+                  position={el.dragPosition}>
+                  <ReResizable
+                    style={{
+                      border: '1px solid blue',
+                      textAlign: 'center',
+                      cursor: 'move',
+                    }}
+                    defaultSize={{
+                      width: 320,
+                      height: 200,
+                    }}
+                    // size={el.size}
+                    onResizeStop={(event, direction, refToElement, delta) =>
+                      this.onResizeStop(
+                        event,
+                        direction,
+                        refToElement,
+                        delta,
+                        el.id
+                      )
+                    }
+                    enable={{
+                      top: false,
+                      right: false,
+                      bottom: false,
+                      left: false,
+                      topRight: false,
+                      bottomRight: true,
+                      bottomLeft: false,
+                      topLeft: false,
+                    }}>
+                    <AntdCard
+                      loading={el.isLoading}
+                      style={{ height: '100%' }}
+                      bodyStyle={{
+                        height: '100%',
+                        padding: 12,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                      <Popover
+                        overlayStyle={{ width: 300 }}
+                        content={
+                          <Fragment>
+                            <PopupContent
+                              {...el.configDetails}
+                              hours={
+                                matchTime?.value ??
+                                el?.configDetails?.hours ??
+                                ''
+                              }
+                              isColorVisible={el.isColorVisible}
+                              isConfigVisible={el.isConfigVisible}
+                              locations={locationList}
+                              id={el.id}
+                              handleInputChange={this.handleInputChange}
+                              onDisableMove={this.onDisableMove}
+                              onSubmitClick={this.onSubmitClick}
+                              onDeleteClick={this.onDeleteClick}
+                            />
+                          </Fragment>
+                        }
+                        // placement="bottom"
+                        trigger="click"
+                        visible={el.isConfigVisible}
+                        onVisibleChange={(visible) =>
+                          this.handleVisibility(visible, el.id)
+                        }>
+                        <HiOutlineCog
+                          size="1.5em"
+                          style={{
+                            cursor: 'pointer',
+                            position: 'absolute',
+                            top: 5,
+                            left: 5,
+                          }}
+                        />
+                      </Popover>
+
+                      {el?.configDetails?.displayType === 'chart' && (
+                        <Fragment>
+                          {el.chartData &&
+                          Object.keys(el.chartData).length > 0 ? (
+                            <Fragment>
+                              <LineChart
+                                data={{ datasets: [el.chartData] }}
+                                options={{
+                                  scales: {
+                                    xAxes: [
+                                      {
+                                        type: 'time',
+                                        time: {
+                                          unit:
+                                            Number(el.configDetails.hours) > 24
+                                              ? 'day'
+                                              : 'hour',
+                                        },
+                                      },
+                                    ],
+                                  },
+                                  responsive: true,
+                                }}
+                              />
+                            </Fragment>
+                          ) : (
+                            <Fragment>No Data Found!</Fragment>
+                          )}
+                        </Fragment>
+                      )}
+
+                      {el?.configDetails?.displayType === 'gauge' && (
+                        <Fragment>
+                          {el.gaugeData &&
+                          Object.keys(el.gaugeData).length > 0 ? (
+                            <Fragment>
+                              <label
+                                style={{
+                                  position: 'absolute',
+                                  top: 5,
+                                  fontSize: 16,
+                                }}>
+                                <strong>{`${el?.gaugeData?.longName}(${el?.gaugeData?.shortName})`}</strong>
+                              </label>
+                              <Row justify="center" align="middle">
+                                <Col>
+                                  <ReactSpeedoMeter
+                                    {...el.gaugeData}
+                                    speedoMeterProps={{
+                                      width: el?.dimensions?.width
+                                        ? el?.dimensions?.width -
+                                          (el?.dimensions?.width * 20) / 100
+                                        : 320 - (320 * 20) / 100,
+                                      height: el?.dimensions?.height
+                                        ? el?.dimensions?.height -
+                                          (el?.dimensions?.height * 20) / 100
+                                        : 200 - (200 * 20) / 100,
+                                      textColor: el.gaugeData?.graphColor,
+                                    }}
+                                  />
+                                </Col>
+                              </Row>
+                            </Fragment>
+                          ) : (
+                            <Fragment>No Data Found!</Fragment>
+                          )}
+                        </Fragment>
+                      )}
+                    </AntdCard>
+                    <IoIosArrowDown
+                      style={{
+                        position: 'absolute',
+                        marginLeft: 'auto',
+                        bottom: 0,
+                        right: 0,
+                        transform: `rotate(-45deg)`,
+                      }}
+                      size="1.2em"
+                    />
+                  </ReResizable>
+                </Draggable>
+              </Fragment>
+            );
+          })}
       </Fragment>
     );
   }
